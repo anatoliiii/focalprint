@@ -6,7 +6,7 @@ members = ["crates/*"]
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.90"
-license = "GPL-2.0-or-later"
+license = "LGPL-2.1-or-later"
 repository = "https://github.com/anatoliiii/focalprint"
 
 [workspace.dependencies]

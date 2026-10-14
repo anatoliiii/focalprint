@@ -118,9 +118,16 @@ focalprint --backend usb capture                   # просмотр кадро
 
 ## Лицензия
 
-GPL-2.0-or-later (см. `LICENSE`). Знания о протоколе FT9368 основаны на
-открытом драйвере [libfprint-fte3600](https://github.com/SamSeven777/libfprint-fte3600)
-(LGPL-2.1-or-later); подробнее в [docs/clean-room.md](docs/clean-room.md).
+| Часть | Лицензия |
+|---|---|
+| Пользовательская часть: `crates/`, `research/`, `tools/`, `packaging/` | [LGPL-2.1-or-later](LICENSES/LGPL-2.1-or-later.txt) (`LICENSE`) |
+| Модуль ядра: `kernel/` | [GPL-2.0-only](LICENSES/GPL-2.0-only.txt), как само ядро Linux |
+| Веса модели (файлы релиза) | [CC-BY-4.0](LICENSES/CC-BY-4.0.txt) |
+
+Знания о протоколе FT9368 основаны на открытом драйвере
+[libfprint-fte3600](https://github.com/SamSeven777/libfprint-fte3600)
+(LGPL-2.1-or-later); код оттуда не копировался, подробнее в
+[docs/clean-room.md](docs/clean-room.md).
 Публичные датасеты отпечатков, на которых обучалась модель, здесь не
 распространяются и остаются под своими условиями; источники и условия
 перечислены в [models/README.md](models/README.md#training-data).

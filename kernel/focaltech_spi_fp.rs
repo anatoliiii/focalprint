@@ -16,7 +16,7 @@ module! {
     name: "focaltech_spi_fp",
     authors: ["Mozgolika"],
     description: "FocalTech FTE4800 (FT9368) fingerprint sensor",
-    license: "GPL",
+    license: "GPL v2",
     alias: ["acpi*:FTE4800:*"],
 }
 

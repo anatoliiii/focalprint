@@ -115,9 +115,16 @@ the enrolment missed.
 
 ## Licence
 
-GPL-2.0-or-later (see `LICENSE`). The FT9368 protocol knowledge builds on the
-open-source [libfprint-fte3600](https://github.com/SamSeven777/libfprint-fte3600)
-driver (LGPL-2.1-or-later); see [docs/clean-room.md](docs/clean-room.md).
+| Part | Licence |
+|---|---|
+| Userspace: `crates/`, `research/`, `tools/`, `packaging/` | [LGPL-2.1-or-later](LICENSES/LGPL-2.1-or-later.txt) (`LICENSE`) |
+| Kernel module: `kernel/` | [GPL-2.0-only](LICENSES/GPL-2.0-only.txt), like Linux itself |
+| Model weights (release assets) | [CC-BY-4.0](LICENSES/CC-BY-4.0.txt) |
+
+The FT9368 protocol knowledge builds on the open-source
+[libfprint-fte3600](https://github.com/SamSeven777/libfprint-fte3600)
+driver (LGPL-2.1-or-later); no code was copied, see
+[docs/clean-room.md](docs/clean-room.md).
 Public fingerprint datasets used for training are not redistributed and keep
 their own terms; sources and terms are listed in
 [models/README.md](models/README.md#training-data).
