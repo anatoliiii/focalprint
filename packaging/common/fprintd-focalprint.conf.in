@@ -1,0 +1,15 @@
+# Installed by focalprint. fprintd's D-Bus name, PAM module, polkit policy
+# and command-line tools stay as they are; the daemon behind them is
+# focalprintd. Removing the focalprint package restores stock fprintd.
+[Service]
+ExecStart=
+ExecStart=@LIBEXECDIR@/focalprintd
+StateDirectory=
+StateDirectory=focalprint
+StateDirectoryMode=0700
+# TPM-sealed machine key; created by `focalprint setup`.
+LoadCredentialEncrypted=focalprint-key:/var/lib/focalprint/key.cred
+# The daemon locks all its memory so frames never reach swap.
+LimitMEMLOCK=infinity
+# SPI sensor (focaltech_spi_fp kernel module); USB is already allowed.
+DeviceAllow=/dev/focaltech-fp rw

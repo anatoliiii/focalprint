@@ -1,0 +1,29 @@
+#!/bin/sh
+# Runs after installing or upgrading focalprint.
+#   post-install VERSION MODULE   MODULE: auto (pacman/rpm: build it if an SPI
+#                                 sensor is present), yes or no (answer from
+#                                 the deb/tarball question)
+set -u
+here=$(dirname "$0")
+ver=${1:?version}
+module=${2:-auto}
+
+"$here/migrate-from-fte4800" || echo "focalprint: migration of the old beta failed" >&2
+command -v systemctl >/dev/null 2>&1 && systemctl daemon-reload 2>/dev/null
+
+case $("$here/detect-sensor") in
+spi)
+    if [ "$module" = no ]; then
+        echo "focalprint: SPI sensor found; kernel module skipped (later: $here/dkms-helper enable $ver)"
+    else
+        "$here/dkms-helper" enable "$ver"
+    fi
+    ;;
+usb) echo "focalprint: FT9201 (USB) sensor found; no kernel module needed" ;;
+*) echo "focalprint: no supported sensor found on this machine" ;;
+esac
+
+if [ ! -f /var/lib/focalprint/key.cred ] || [ ! -f /var/lib/focalprint/model/fpnet.onnx ]; then
+    echo "focalprint: finish with: sudo focalprint setup --model /path/to/fpnet.onnx"
+fi
+echo "focalprint: then: sudo systemctl restart fprintd"

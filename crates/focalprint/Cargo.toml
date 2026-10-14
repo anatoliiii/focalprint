@@ -1,0 +1,18 @@
+[package]
+name = "focalprint"
+description = "Diagnostics for FocalTech FTE4800 (SPI) and FT9201 (USB) fingerprint sensors"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+focalprint-sensor.workspace = true
+focalprint-match.workspace = true
+clap.workspace = true
+zeroize.workspace = true
+focalprint-dataset.workspace = true
+focalprint-net.workspace = true
+
+[lints]
+workspace = true

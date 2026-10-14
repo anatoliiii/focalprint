@@ -1,0 +1,20 @@
+#!/bin/sh
+# Prints which supported fingerprint sensor this machine has:
+#   spi   FTE4800 / FT9368 (needs the focaltech_spi_fp kernel module, DKMS)
+#   usb   FT9201, USB 2808:c652 (no kernel module needed)
+#   none
+has_usb() {
+    for d in /sys/bus/usb/devices/*; do
+        [ "$(cat "$d/idVendor" 2>/dev/null)" = 2808 ] &&
+            [ "$(cat "$d/idProduct" 2>/dev/null)" = c652 ] && return 0
+    done
+    return 1
+}
+
+if [ -e /sys/bus/acpi/devices/FTE4800:00 ]; then
+    echo spi
+elif has_usb; then
+    echo usb
+else
+    echo none
+fi

@@ -1,0 +1,37 @@
+# Only what focaltech_spi_fp calls; everything these reference is pulled in recursively.
+--allowlist-function __spi_register_driver
+--allowlist-function driver_unregister
+--allowlist-function spi_setup
+--allowlist-function spi_sync
+--allowlist-function acpi_walk_resources
+--allowlist-function acpi_dev_add_driver_gpios
+--allowlist-function acpi_dev_remove_driver_gpios
+--allowlist-function gpiod_get
+--allowlist-function gpiod_put
+--allowlist-function gpiod_set_value_cansleep
+--allowlist-function request_threaded_irq
+--allowlist-function free_irq
+--allowlist-function try_module_get
+--allowlist-function module_put
+--allowlist-var acpi_device_fwnode_ops
+--allowlist-var ACPI_RESOURCE_TYPE_GPIO
+--allowlist-var ACPI_RESOURCE_TYPE_SERIAL_BUS
+--allowlist-var ACPI_RESOURCE_GPIO_TYPE_IO
+--allowlist-var ACPI_RESOURCE_GPIO_TYPE_INT
+--allowlist-var ACPI_RESOURCE_SERIAL_TYPE_SPI
+--allowlist-var IRQF_ONESHOT
+--allowlist-type acpi_device
+--allowlist-type acpi_device_id
+--allowlist-type acpi_resource
+
+# Same opaque/blocklist rules the kernel applies to its own bindings.
+--blocklist-type __kernel_s?size_t
+--blocklist-type __kernel_ptrdiff_t
+--opaque-type xregs_state
+--opaque-type desc_struct
+--opaque-type arch_lbr_state
+--opaque-type local_apic
+--opaque-type alt_instr
+--opaque-type x86_msi_data
+--opaque-type x86_msi_addr_lo
+--opaque-type spinlock

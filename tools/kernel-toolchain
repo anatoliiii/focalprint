@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# Provide the exact rustc + bindgen the running (or given) kernel was built
+# with. Out-of-tree Rust modules only link against the kernel's prebuilt crate
+# metadata when compiled by that very rustc build, so a rustup toolchain of the
+# same version is not enough.
+#
+# 1. The distribution's own rustc/bindgen, if their version strings are the
+#    ones recorded in the kernel config (any distribution).
+# 2. Arch Linux: the matching rust/rust-bindgen packages from the Arch
+#    archive, signature-checked, cached.
+#
+# Usage: kernel-toolchain path [KDIR]   -> prints the toolchain root
+set -euo pipefail
+
+cmd=${1:-path}
+kdir=${2:-/usr/lib/modules/$(uname -r)/build}
+if [[ $EUID -eq 0 ]]; then
+    default_cache=/var/cache/focalprint/toolchain        # DKMS
+else
+    default_cache=${XDG_CACHE_HOME:-$HOME/.cache}/focalprint/toolchain
+fi
+cache=${FOCALPRINT_TOOLCHAIN_CACHE:-$default_cache}
+
+config_value() {
+    sed -n "s/^$1=\"\{0,1\}\([^\"]*\)\"\{0,1\}$/\1/p" "$kdir/.config"
+}
+
+[[ $(config_value CONFIG_RUST) == y ]] || {
+    echo "kernel-toolchain: $kdir is built without CONFIG_RUST; Rust modules cannot load" >&2
+    exit 1
+}
+
+# "rustc 1.99.0 (b940084d7 2026-09-28) (Arch Linux rust 1:1.99.0-1)"
+rustc_text=$(config_value CONFIG_RUSTC_VERSION_TEXT)
+bindgen_text=$(config_value CONFIG_BINDGEN_VERSION_TEXT)
+
+if [[ $(/usr/bin/rustc --version 2>/dev/null) == "$rustc_text" &&
+      $(/usr/bin/bindgen --version 2>/dev/null) == "$bindgen_text" ]]; then
+    [[ $cmd == path ]] && { echo /; exit 0; }
+fi
+
+rust_pkgver=$(sed -n 's/.*(Arch Linux rust \([^)]*\)).*/\1/p' <<<"$rustc_text")
+# "bindgen 0.73.2"
+bindgen_ver=$(awk '{print $2}' <<<"$bindgen_text")
+
+if [[ -z $rust_pkgver || -z $bindgen_ver ]]; then
+    echo "kernel-toolchain: the kernel was built with \"$rustc_text\" and \"$bindgen_text\";" >&2
+    echo "  install exactly these as /usr/bin/rustc and /usr/bin/bindgen (distribution packages)." >&2
+    exit 1
+fi
+
+root=$cache/rust-${rust_pkgver/:/_}-bindgen-$bindgen_ver
+
+fetch() { # name pkgver
+    local name=$1 ver=$2 file url
+    file="$name-$ver-x86_64.pkg.tar.zst"
+    url="https://archive.archlinux.org/packages/${name:0:1}/$name/$file"
+    curl -sfL --retry 3 -o "$tmp/$file" "$url" &&
+        curl -sfL --retry 3 -o "$tmp/$file.sig" "$url.sig" || {
+        echo "kernel-toolchain: cannot download $url" >&2
+        exit 1
+    }
+    pacman-key --verify "$tmp/$file.sig" "$tmp/$file" >/dev/null 2>&1 || {
+        echo "kernel-toolchain: bad signature on $file" >&2
+        exit 1
+    }
+    tar --zstd --force-local -xf "$tmp/$file" -C "$tmp/root" usr
+}
+
+if [[ ! -x $root/usr/bin/rustc ]]; then
+    mkdir -p "$cache"
+    tmp=$(mktemp -d "$cache/.fetch.XXXXXX")
+    trap 'rm -rf "$tmp"' EXIT
+    mkdir "$tmp/root"
+    echo "kernel-toolchain: fetching rust $rust_pkgver and rust-bindgen $bindgen_ver" >&2
+    fetch rust "$rust_pkgver"
+    # The bindgen package release is not recorded in the kernel config; take
+    # the newest one from the archive listing. (Probing URLs does not work:
+    # the archive redirects missing files instead of answering 404.)
+    rel=$(curl -sfL --retry 3 https://archive.archlinux.org/packages/r/rust-bindgen/ |
+        grep -oE "rust-bindgen-${bindgen_ver//./\\.}-[0-9]+-x86_64\.pkg\.tar\.zst\"" |
+        sed -E 's/.*-([0-9]+)-x86_64.*/\1/' | sort -n | tail -n1) || true
+    fetch rust-bindgen "$bindgen_ver-${rel:?bindgen $bindgen_ver not found in the Arch archive}"
+    mv "$tmp/root" "$root"
+fi
+
+case $cmd in
+    path) echo "$root" ;;
+    *) echo "usage: kernel-toolchain path [KDIR]" >&2; exit 2 ;;
+esac

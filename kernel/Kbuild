@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: GPL-2.0-only
+obj-m := focaltech_spi_fp.o
+
+# Kernel-internal C APIs the in-tree `kernel` crate has no bindings for (SPI,
+# ACPI GPIO lookup, threaded IRQs), generated against this exact kernel.
+# Mirrors rust/Makefile: the kernel is built with GCC, bindgen parses with
+# libclang, so drop the GCC-only flags.
+fte_bindgen_skip := -mno-fp-ret-in-387 -mpreferred-stack-boundary=% \
+	-mskip-rax-setup -mgeneral-regs-only -msign-return-address=% \
+	-mindirect-branch=thunk-extern -mindirect-branch-register \
+	-mfunction-return=thunk-extern -mrecord-mcount -mabi=lp64 \
+	-mindirect-branch-cs-prefix -mstack-protector-guard% -mtraceback=no \
+	-mno-pointers-to-nested-functions -mno-string \
+	-mno-strict-align -mstrict-align -mdirect-extern-access \
+	-mexplicit-relocs -mno-check-zero-division \
+	-fconserve-stack -falign-jumps=% -falign-loops=% \
+	-femit-struct-debug-baseonly -fno-ipa-cp-clone -fno-ipa-sra \
+	-fno-partial-inlining -fplugin-arg-arm_ssp_per_task_plugin-% \
+	-fno-reorder-blocks -fno-allow-store-data-races -fasan-shadow-offset=% \
+	-fzero-call-used-regs=% -fno-stack-clash-protection \
+	-fno-inline-functions-called-once -fsanitize=bounds-strict \
+	-fstrict-flex-arrays=% -fmin-function-alignment=% \
+	-fzero-init-padding-bits=% -mno-fdpic \
+	-fdiagnostics-show-context -fdiagnostics-show-context=% \
+	--param=% --param asan-% -fno-isolate-erroneous-paths-dereference
+
+fte_hash := \#
+
+quiet_cmd_fte_bindgen = BINDGEN $@
+      cmd_fte_bindgen = \
+	$(BINDGEN) $< --rust-target 1.85 --use-core --with-derive-default \
+		--ctypes-prefix ffi --no-layout-tests --no-debug '.*' \
+		--enable-function-attribute-detection \
+		$(shell grep -Ev '^$(fte_hash)|^$$' $(src)/sys/bindgen_parameters) \
+		-o $@ -- $(filter-out $(fte_bindgen_skip), $(c_flags)) \
+		-w --target=x86_64-linux-gnu -fno-builtin -D__BINDGEN__ -DMODULE
+
+$(obj)/sys/generated.rs: $(src)/sys/wrapper.h $(src)/sys/bindgen_parameters FORCE
+	$(call if_changed_dep,fte_bindgen)
+
+targets += sys/generated.rs
+$(obj)/focaltech_spi_fp.o: $(obj)/sys/generated.rs

@@ -1,0 +1,38 @@
+# Builds from a source tarball made by `git archive` (see the release
+# workflow): focalprint-$pkgver.tar.gz next to this file.
+pkgname=focalprint
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Open fingerprint stack for FocalTech sensors (TECNO laptops), behind fprintd'
+arch=(x86_64)
+url='https://github.com/anatoliiii/focalprint'
+license=(GPL-2.0-or-later)
+depends=(fprintd gcc-libs glibc systemd)
+makedepends=(cargo)
+optdepends=('dkms: kernel module for the SPI sensor of early MEGABOOK T1 units'
+            'linux-headers: kernel module for the SPI sensor')
+install=focalprint.install
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+options=(!lto)
+
+prepare() {
+    cd "$pkgname-$pkgver"
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "$pkgname-$pkgver"
+    cargo build --release --frozen
+}
+
+check() {
+    cd "$pkgname-$pkgver"
+    cargo test --release --frozen --workspace
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    packaging/install-tree.sh "$pkgdir" /usr/lib/focalprint "$pkgver"
+    install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

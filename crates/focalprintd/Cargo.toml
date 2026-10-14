@@ -1,0 +1,25 @@
+[package]
+name = "focalprintd"
+description = "Fingerprint daemon for FocalTech FTE4800 (SPI) and FT9201 (USB) sensors, compatible with fprintd's D-Bus API"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+focalprint-sensor.workspace = true
+focalprint-net.workspace = true
+clap.workspace = true
+futures-util.workspace = true
+nix.workspace = true
+rustix = { workspace = true, features = ["mm", "process"] }
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+zeroize.workspace = true
+focalprint-dataset.workspace = true
+zbus.workspace = true
+
+[lints]
+workspace = true

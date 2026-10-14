@@ -1,0 +1,26 @@
+/target
+kernel/*.o
+kernel/*.ko
+kernel/*.mod
+kernel/*.mod.c
+kernel/.*.cmd
+kernel/.*.d
+kernel/modules.order
+kernel/Module.symvers
+kernel/sys/generated.rs
+kernel/.module-common.o
+/research/.venv
+__pycache__/
+kernel/sys/.*.cmd
+kernel/sys/.*.d
+# Never commit biometric data or models trained on it.
+*.onnx
+*.pt
+*.pgm
+*.pcap
+*.pcapng
+*.cred
+# Models: private/ holds models trained on real fingerprints (never commit);
+# public/ models are published as GitHub release assets, not in git
+# (models/README.md, models/SHA256SUMS).
+/models/private/

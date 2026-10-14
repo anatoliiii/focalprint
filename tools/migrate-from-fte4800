@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# One-time migration of the pre-rename beta ("fte4800") to focalprint:
+# moves /var/lib/fte4800 to /var/lib/focalprint and re-seals the TPM key
+# under the new credential name. Templates keep working unchanged.
+# Idempotent; does nothing when there is nothing to migrate. Run as root.
+set -euo pipefail
+
+old=/var/lib/fte4800
+new=/var/lib/focalprint
+[[ -d $old ]] || exit 0
+[[ $EUID -eq 0 ]] || { echo "migrate-from-fte4800: run as root" >&2; exit 1; }
+if [[ -e $new ]]; then
+    echo "migrate-from-fte4800: both $old and $new exist; leaving them alone" >&2
+    exit 0
+fi
+
+umask 077
+stage=$(mktemp -d /var/lib/.focalprint-migrate.XXXXXX)
+trap 'rm -rf "$stage"' EXIT
+cp -a "$old/." "$stage/"
+
+# The machine key moves from dataset/ to the top level (it protects the
+# templates too) and is re-sealed under its new credential name. It only
+# ever passes through a pipe between the two tools.
+if [[ -f $old/dataset/key.cred ]]; then
+    systemd-creds decrypt --name=fte4800-dataset-key "$old/dataset/key.cred" - \
+        | systemd-creds encrypt --with-key=tpm2 --name=focalprint-key - "$stage/key.cred"
+    chmod 0600 "$stage/key.cred"
+    rm -f "$stage/dataset/key.cred"
+fi
+
+mv "$stage" "$new"
+trap - EXIT
+chmod 0700 "$new"
+mv "$old" "$old.migrated"
+echo "migrated $old -> $new (old copy kept as $old.migrated; delete it once everything works)"

@@ -1,0 +1,17 @@
+[package]
+name = "focalprint-match"
+description = "Fingerprint feature extraction and matching for small-area sensors"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+postcard.workspace = true
+serde.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+zeroize.workspace = true
+
+[lints]
+workspace = true

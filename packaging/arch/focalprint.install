@@ -1,0 +1,13 @@
+# pacman cannot ask questions: the SPI kernel module is built automatically
+# when that sensor is present and dkms is installed.
+post_install() {
+    /usr/lib/focalprint/post-install "${1%-*}" auto
+}
+
+post_upgrade() {
+    post_install "$1"
+}
+
+pre_remove() {
+    /usr/lib/focalprint/pre-remove
+}

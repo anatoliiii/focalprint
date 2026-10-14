@@ -1,0 +1,11 @@
+PACKAGE_NAME="focaltech-spi-fp"
+PACKAGE_VERSION="@VERSION@"
+BUILT_MODULE_NAME[0]="focaltech_spi_fp"
+DEST_MODULE_LOCATION[0]="/updates/dkms"
+# The module needs the very rustc that built the kernel; kernel-toolchain
+# finds or fetches it (see docs/megabook-t1.md).
+MAKE[0]="make KDIR=${kernel_source_dir} TOOLCHAIN_SCRIPT=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build/kernel-toolchain"
+CLEAN="make clean KDIR=${kernel_source_dir} TOOLCHAIN_SCRIPT=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build/kernel-toolchain"
+# Kernels without Rust support are skipped instead of failing.
+BUILD_EXCLUSIVE_CONFIG="CONFIG_RUST"
+AUTOINSTALL="yes"

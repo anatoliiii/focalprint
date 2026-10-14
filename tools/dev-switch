@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Development helper: hand the sensor to the Rust driver or back to the old
+# C stack (fte3600 glue + spidev + fprintd). Run as root.
+#
+#   dev-switch rust   # stop fprintd, unbind spidev, load kernel/focaltech_spi_fp.ko
+#   dev-switch daemon [MODEL.onnx]  # rust + mask fprintd (until reboot) and
+#                     # run focalprintd (installs MODEL as the matcher if given)
+#                     # as transient unit focalprintd-dev (logs: journalctl -u)
+#   dev-switch c      # stop focalprintd, unload focaltech_spi_fp, rebind spidev +
+#                     # fte3600, unmask fprintd
+#   dev-switch status
+set -euo pipefail
+
+dev=/sys/bus/spi/devices/spi-FTE4800:00
+name=${dev##*/}
+here=$(cd "$(dirname "$0")/.." && pwd)
+
+driver() { basename "$(readlink "$dev/driver" 2>/dev/null)" 2>/dev/null || echo none; }
+
+[[ -e $dev ]] || { echo "no $name on this machine" >&2; exit 1; }
+[[ ${1:-} == status ]] || [[ $EUID -eq 0 ]] || { echo "run as root" >&2; exit 1; }
+
+stop_daemon() {
+    # fte4800d-dev: the same daemon under its pre-rename name
+    for unit in focalprintd-dev fte4800d-dev; do
+        systemctl stop $unit.service 2>/dev/null || true
+        systemctl reset-failed $unit.service 2>/dev/null || true
+    done
+}
+
+case ${1:-} in
+rust | daemon)
+    stop_daemon
+    systemctl stop fprintd.service 2>/dev/null || true
+    [[ $(driver) == spidev ]] && echo "$name" > /sys/bus/spi/drivers/spidev/unbind
+    modprobe -r fte3600 2>/dev/null || true
+    # module of the pre-rename beta
+    [[ -d /sys/module/fte4800 ]] && rmmod fte4800
+    echo > "$dev/driver_override"
+    if [[ ! -d /sys/module/focaltech_spi_fp ]]; then
+        insmod "$here/kernel/focaltech_spi_fp.ko"
+    fi
+    [[ $(driver) == focaltech_spi_fp ]] || echo "$name" > /sys/bus/spi/drivers/focaltech_spi_fp/bind
+    if [[ $1 == daemon ]]; then
+        "$here/tools/migrate-from-fte4800"
+        cred=/var/lib/focalprint/key.cred
+        [[ -f $cred ]] || { echo "no machine key: run focalprint setup" >&2; exit 1; }
+        if [[ -n ${2:-} ]]; then
+            install -D -m 0600 "$2" /var/lib/focalprint/model/fpnet.onnx
+        fi
+        [[ -f /var/lib/focalprint/model/fpnet.onnx ]] || { echo "no model: pass one" >&2; exit 1; }
+        systemctl mask --runtime fprintd.service
+        systemd-run --unit=focalprintd-dev --property=Type=dbus \
+            --property="LoadCredentialEncrypted=focalprint-key:$cred" \
+            --property=BusName=net.reactivated.Fprint \
+            --setenv=RUST_LOG=focalprintd=debug,info \
+            "$here/target/release/focalprintd" --idle-timeout 0
+    fi
+    ;;
+c)
+    stop_daemon
+    systemctl unmask --runtime fprintd.service 2>/dev/null || true
+    for module in focaltech_spi_fp fte4800; do
+        [[ -d /sys/module/$module ]] && rmmod $module
+    done
+    echo spidev > "$dev/driver_override"
+    modprobe spidev
+    [[ $(driver) == spidev ]] || echo "$name" > /sys/bus/spi/drivers/spidev/bind
+    modprobe fte3600
+    udevadm trigger --action=change "$dev"
+    udevadm settle
+    ;;
+status) ;;
+*)
+    echo "usage: dev-switch rust|daemon|c|status" >&2
+    exit 2
+    ;;
+esac
+
+echo "driver: $(driver)"
+systemctl is-active focalprintd-dev.service >/dev/null 2>&1 && echo "daemon: focalprintd-dev running"
+ls -l /dev/focaltech-fp 2>/dev/null || true
+dmesg 2>/dev/null | grep -E "focaltech|fte4800|fte3600" | tail -5 || true

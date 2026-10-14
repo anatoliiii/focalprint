@@ -1,0 +1,38 @@
+name: release
+# On a version tag: build the userspace binaries and attach a ready-to-install
+# tarball (sources + target/release binaries) to the GitHub release. The model
+# weights are uploaded separately (models/README.md); the kernel module is
+# built on the target machine by DKMS.
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  x86_64-linux:
+    # oldest supported runner: the binaries then run on any newer glibc
+    runs-on: ubuntu-22.04
+    env:
+      # release builds use LTO with one codegen unit: keep memory in check
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --workspace
+      - run: cargo build --release --locked -p focalprint -p focalprintd
+      - name: Tarball
+        run: |
+          name=focalprint-${GITHUB_REF_NAME#v}-x86_64-linux
+          git archive --prefix="$name/" -o "$name.tar" HEAD
+          mkdir -p "stage/$name/target/release"
+          cp target/release/focalprint target/release/focalprintd "stage/$name/target/release/"
+          strip "stage/$name/target/release/"*
+          tar -rf "$name.tar" -C stage "$name/target"
+          gzip -9 "$name.tar"
+          sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
+      - uses: softprops/action-gh-release@v2
+        with:
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
+          files: |
+            focalprint-*.tar.gz
+            focalprint-*.tar.gz.sha256

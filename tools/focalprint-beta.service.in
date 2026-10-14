@@ -1,0 +1,19 @@
+# Beta autostart: hand the sensor to the Rust stack at boot.
+# Install (from the repository root):
+#   sed "s|@REPO@|$PWD|g" tools/focalprint-beta.service.in \
+#     | sudo tee /etc/systemd/system/focalprint-beta.service >/dev/null
+#   sudo systemctl daemon-reload && sudo systemctl enable focalprint-beta.service
+# Remove:  sudo systemctl disable focalprint-beta.service && sudo dev-switch c
+[Unit]
+Description=focalprint fingerprint stack (beta)
+After=systemd-udev-settle.service dbus.service
+Wants=systemd-udev-settle.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=@REPO@/tools/dev-switch daemon
+ExecStop=@REPO@/tools/dev-switch c
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Train FpNet on a remote ROCm box (FTE_TRAIN_HOST=user@host). Private frames travel over SSH only and
+# live in the remote's RAM (/dev/shm); public datasets and code go to disk.
+#
+#   remote-train push [EXPORT_DIR] [NAME]  # code + public data + private
+#                                    # frames into $shm/NAME (default frames)
+#   remote-train train [ARGS…]       # start training (transient unit)
+#   remote-train status              # tail the log
+#   remote-train fetch [DEST]        # copy the model back
+# Set TAG=name to run/inspect several trainings side by side.
+#   remote-train wipe                # delete private frames + model remotely
+set -euo pipefail
+
+host=${FTE_TRAIN_HOST:?set FTE_TRAIN_HOST=user@host of the ROCm/CUDA training box}
+remote=/root/fte4800-train
+shm=/dev/shm/fte4800
+py=${FTE_TRAIN_PY:-/root/venvs/vllm-rocm}   # remote Python venv with ROCm/CUDA torch
+here=$(cd "$(dirname "$0")/.." && pwd)
+tag=${TAG:+-$TAG}
+unit=fte4800-train$tag
+
+case ${1:-} in
+push)
+    export_dir=${2:-/dev/shm/fte4800-dataset}
+    [[ -d $export_dir ]] || { echo "no export at $export_dir (run: sudo fte4800ctl dataset export)" >&2; exit 1; }
+    ssh "$host" "mkdir -p $remote/code $remote/datasets"
+    rsync -a --delete "$here/research/"*.py "$host:$remote/code/"
+    rsync -a ~/datasets/fingerprint/raw/ "$host:$remote/datasets/"
+    name=${3:-frames}
+    [[ $name =~ ^[a-z0-9_-]+$ ]] || { echo "bad name $name" >&2; exit 2; }
+    tar -C "$export_dir" -cf - . | ssh "$host" "umask 077; mkdir -p $shm && rm -rf $shm/$name && mkdir $shm/$name && tar -C $shm/$name -xf -"
+    ssh "$host" "echo pushed \$(ls $shm/$name | grep -c pgm) private frames into RAM: $shm/$name"
+    ;;
+train)
+    shift
+    ssh "$host" "systemctl reset-failed $unit 2>/dev/null; systemd-run --unit=$unit \
+        --setenv=LD_LIBRARY_PATH=$py/lib/python3.13/site-packages/_rocm_sdk_devel/lib \
+        --setenv=HIP_VISIBLE_DEVICES=0 --setenv=FP_DATASETS=$remote/datasets \
+        --setenv=PYTHONUNBUFFERED=1 --working-directory=$remote/code \
+        -p StandardOutput=truncate:$shm/train$tag.log -p StandardError=truncate:$shm/train$tag.log \
+        -p Nice=10 $py/bin/python train.py --real $shm/frames --out $shm/model$tag.pt $*"
+    ;;
+status)
+    ssh "$host" "systemctl is-active $unit; grep -v amd_smi $shm/train$tag.log | tail -${2:-8}"
+    ;;
+fetch)
+    dest=${2:-/dev/shm/fte4800-models/remote$tag.pt}
+    mkdir -p "$(dirname "$dest")"
+    scp -q "$host:$shm/model$tag.pt" "$dest" && echo "model → $dest"
+    ;;
+wipe)
+    ssh "$host" "systemctl stop 'fte4800-train*' 2>/dev/null; rm -rf $shm; echo remote private data wiped"
+    ;;
+*)
+    echo "usage: remote-train push|train|status|fetch|wipe" >&2
+    exit 2
+    ;;
+esac

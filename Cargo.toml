@@ -1,0 +1,50 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+license = "GPL-2.0-or-later"
+repository = "https://github.com/anatoliiii/focalprint"
+
+[workspace.dependencies]
+focalprint-sensor = { path = "crates/focalprint-sensor" }
+focalprint-match = { path = "crates/focalprint-match" }
+focalprint-dataset = { path = "crates/focalprint-dataset" }
+focalprint-net = { path = "crates/focalprint-net" }
+chacha20poly1305 = "0.11"
+tract-onnx = "0.23"
+rayon = "1.12"
+getrandom = "0.4"
+clap = { version = "4.6", features = ["derive", "env"] }
+futures-util = "0.3"
+nusb = "0.2.7"
+nix = { version = "0.31", features = ["user"] }
+tokio = { version = "1.53", features = ["macros", "rt", "sync", "time", "signal"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+zbus = { version = "5.19", default-features = false, features = ["tokio"] }
+postcard = { version = "1.1", features = ["use-std"] }
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.11"
+rustix = { version = "1.1", features = ["fs", "std"] }
+thiserror = "2.0"
+zeroize = { version = "1.9", features = ["derive"] }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+undocumented_unsafe_blocks = "deny"
+doc_markdown = "allow"
+module_name_repetitions = "allow"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"

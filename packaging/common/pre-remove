@@ -1,0 +1,7 @@
+#!/bin/sh
+# Runs before focalprint is removed (not on upgrade): drop the kernel module.
+# Templates and the key in /var/lib/focalprint stay; delete them by hand.
+here=$(dirname "$0")
+"$here/dkms-helper" disable
+command -v systemctl >/dev/null 2>&1 && systemctl try-restart fprintd 2>/dev/null
+exit 0
