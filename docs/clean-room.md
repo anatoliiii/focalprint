@@ -60,8 +60,9 @@ never inspected. `usbmon` does not store the payload of transfers larger than
 with `tools/ft9201-grab.py`, which replays the observed protocol.
 
 Status: protocol implemented and unit-tested byte for byte against the
-capture. **Not yet verified on hardware**: the byte order of the 16-bit pixels
-(little-endian assumed) and the release timing.
+capture, and verified on hardware (TECNO MegaBook K16S, Fedora): 16-bit pixels
+are little-endian, and capture, release detection, enrolment and verification
+work through `focalprintd`.
 
 ## Adding a sensor the same way
 

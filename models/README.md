@@ -68,7 +68,12 @@ scored like impostors (0.19–0.30), not just under the threshold: they showed
 skin the enrolment had not covered. The daemon's adaptive template (see the
 main README) closes most of that gap over the first days of use.
 
-Recommended start: `--threshold 0.41`. To calibrate, run
+FT9201 (USB, TECNO MegaBook K16S), live, `--fingers 2 --threshold 0.41`,
+20 touches including other, non-enrolled fingers: no false accept; genuine
+matches scored 0.56–0.65, other fingers at most 0.37. Use `--threshold 0.45`
+on this sensor.
+
+Recommended start: `--threshold 0.41` (FT9368) or `0.45` (FT9201). To calibrate, run
 `sudo focalprint --backend usb neural --model models/public/fpnet-distill-kd.onnx --fingers 2 --threshold 0.41`
 and compare the scores of genuine touches with the other finger's score
 (printed in brackets). Pick a threshold clearly above the highest

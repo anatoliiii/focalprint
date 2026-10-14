@@ -2,8 +2,9 @@
 
 For laptops with the USB FocalTech FT9201, e.g. TECNO MegaBook K16S. No
 kernel module is needed. The USB protocol was reverse-engineered from
-captures and is unit-tested, but **has not yet run on real hardware**, so
-check the sensor first (step 2) before handing it to fprintd.
+captures; it has been verified on a K16S under Fedora (capture, enrolment,
+verification, unlock). Still check the sensor first (step 2) before handing
+it to fprintd.
 
 Keep a password login: everything below can be undone with one command
 (see [Rolling back](#rolling-back)).
@@ -35,8 +36,9 @@ sudo ./target/release/focalprint --backend usb capture
 
 `info` should report `FT9201 (USB), id 0x6293`. `capture` previews each touch
 in the terminal. A good frame looks like the FT9368's: **dark ridges, light
-valleys, light where there is no finger.** Two things are still unconfirmed
-on this sensor and can be switched without rebuilding:
+valleys, light where there is no finger.** The default pixel format was
+right on the K16S that was tested; if your unit differs, it can be switched
+without rebuilding:
 
 | What you see | Try |
 |---|---|
@@ -53,14 +55,14 @@ memory only; nothing is stored:
 
 ```sh
 sudo ./target/release/focalprint --backend usb neural \
-    --model models/public/fpnet-distill-kd.onnx --fingers 2 --threshold 0.41
+    --model models/public/fpnet-distill-kd.onnx --fingers 2 --threshold 0.45
 ```
 
 Each verification line shows the scores of both fingers, e.g.
-`MATCH A [A=0.701 B=0.243]`. The model was trained for the FT9368 and has not
-been measured on this sensor: if genuine touches mostly score well above the
-other finger's score, it works; choose a threshold clearly above the highest
-other-finger score you see (more in [models/README.md](../models/README.md)).
+`MATCH A [A=0.701 B=0.243]`. On the tested K16S, genuine touches scored
+0.56–0.65 and other fingers at most 0.37, hence the threshold 0.45; check
+that your unit shows a similar gap (more in
+[models/README.md](../models/README.md)).
 
 ## 3. Install
 
@@ -93,7 +95,7 @@ sudo systemctl edit fprintd
 ```ini
 [Service]
 ExecStart=
-ExecStart=/usr/local/libexec/focalprint/focalprintd --threshold 0.41
+ExecStart=/usr/local/libexec/focalprint/focalprintd --threshold 0.45
 # only if step 2 needed it:
 Environment=FOCALPRINT_FT9201_PIXELS=be
 ```

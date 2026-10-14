@@ -9,7 +9,7 @@ written without vendor drivers, libraries or matchers
 | Sensor | Bus | Laptop | Status |
 |---|---|---|---|
 | FTE4800 / FT9368 | SPI (ACPI) | TECNO MEGABOOK T1 | works: capture, enrol, verify, `sudo`/lock screen via fprintd API |
-| FT9201 | USB `2808:c652` | TECNO MegaBook K16S | protocol implemented and unit-tested, **not yet tested on hardware** ([Fedora guide](docs/fedora-ft9201.md)) |
+| FT9201 | USB `2808:c652` | TECNO MegaBook K16S | works: capture, enrol, verify, unlock; verified on a K16S under Fedora ([Fedora guide](docs/fedora-ft9201.md)) |
 
 It replaces libfprint + fprintd entirely: `focalprintd` serves fprintd's
 `net.reactivated.Fprint` D-Bus API, so `pam_fprintd`, hyprlock, GNOME and

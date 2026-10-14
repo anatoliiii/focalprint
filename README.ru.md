@@ -9,7 +9,7 @@
 | Сенсор | Шина | Ноутбук | Статус |
 |---|---|---|---|
 | FTE4800 / FT9368 | SPI (ACPI) | TECNO MEGABOOK T1 | работает: съёмка, запись, проверка, `sudo` и экран блокировки через API fprintd |
-| FT9201 | USB `2808:c652` | TECNO MegaBook K16S | протокол реализован и покрыт тестами, **на железе ещё не проверен** ([инструкция для Fedora](docs/fedora-ft9201.md)) |
+| FT9201 | USB `2808:c652` | TECNO MegaBook K16S | работает: съёмка, запись, проверка, разблокировка; проверено на K16S под Fedora ([инструкция для Fedora](docs/fedora-ft9201.md)) |
 
 Полностью заменяет libfprint + fprintd: `focalprintd` предоставляет D-Bus API
 fprintd (`net.reactivated.Fprint`), поэтому `pam_fprintd`, hyprlock, GNOME
